@@ -1,0 +1,1322 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VC Exit Method — Startup Valuation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #080a0f;
+    --surface: #0d1017;
+    --card: #111520;
+    --border: #1e2535;
+    --accent: #c8f135;
+    --accent-dim: rgba(200,241,53,0.12);
+    --accent-glow: rgba(200,241,53,0.25);
+    --text: #e8eaf0;
+    --muted: #5a6280;
+    --highlight: #ffffff;
+    --gold: #f0c060;
+    --danger: #ff5f5f;
+    --blue: #5fa8ff;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.6;
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    top: -200px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 800px;
+    height: 400px;
+    background: radial-gradient(ellipse, rgba(200,241,53,0.05) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 60px 24px 100px;
+    position: relative;
+    z-index: 1;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 64px;
+    animation: fadeDown 0.8s ease both;
+  }
+
+  .badge {
+    display: inline-block;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    padding: 5px 14px;
+    border-radius: 2px;
+    margin-bottom: 24px;
+    background: var(--accent-dim);
+  }
+
+  h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(36px, 6vw, 72px);
+    line-height: 1.05;
+    color: var(--highlight);
+    margin-bottom: 16px;
+    letter-spacing: -0.02em;
+  }
+
+  h1 em { font-style: italic; color: var(--accent); }
+
+  .subtitle {
+    font-size: 15px;
+    color: var(--muted);
+    max-width: 520px;
+    margin: 0 auto;
+    line-height: 1.7;
+  }
+
+  .main-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 24px;
+    animation: fadeUp 0.8s ease 0.2s both;
+  }
+
+  @media (max-width: 720px) { .main-grid { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 32px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent-glow), transparent);
+  }
+
+  .card-title {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .card-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .input-group { margin-bottom: 20px; }
+  .input-group:last-child { margin-bottom: 0; }
+
+  label {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 8px;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.05em;
+  }
+
+  label .hint { font-size: 10px; color: var(--border); }
+
+  .input-wrap { position: relative; }
+
+  .input-wrap .prefix {
+    position: absolute;
+    left: 14px; top: 50%;
+    transform: translateY(-50%);
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    color: var(--accent);
+    pointer-events: none;
+  }
+
+  input[type="number"], select {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 16px;
+    padding: 13px 14px;
+    border-radius: 3px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+
+  input[type="number"].with-prefix { padding-left: 28px; }
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
+  input:focus, select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-dim);
+  }
+
+  select { cursor: pointer; }
+
+  .slider-group { display: flex; align-items: center; gap: 12px; }
+
+  input[type="range"] {
+    flex: 1;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 2px solid var(--bg);
+    box-shadow: 0 0 8px var(--accent-glow);
+    cursor: pointer;
+    transition: transform 0.15s;
+  }
+
+  input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+
+  .range-val {
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    color: var(--accent);
+    min-width: 56px;
+    text-align: right;
+  }
+
+  .results-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 32px;
+    animation: fadeUp 0.8s ease 0.35s both;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .results-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent-glow), transparent);
+  }
+
+  .results-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-top: 24px;
+  }
+
+  .result-cell {
+    background: var(--surface);
+    padding: 24px;
+    transition: background 0.2s;
+  }
+
+  .result-cell:hover { background: #131825; }
+
+  .result-cell .cell-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+
+  .result-cell .cell-value {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(20px, 2.5vw, 30px);
+    color: var(--highlight);
+    line-height: 1;
+    transition: all 0.4s ease;
+  }
+
+  .result-cell.accent-cell .cell-value { color: var(--accent); }
+  .result-cell.gold-cell .cell-value { color: var(--gold); }
+
+  .result-cell .cell-sub {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 6px;
+    font-family: 'DM Mono', monospace;
+  }
+
+  .formula-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 3px;
+    padding: 16px 20px;
+    margin-top: 20px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 2;
+  }
+
+  .formula-box .f-title {
+    color: var(--accent);
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .formula-box span { color: var(--text); }
+
+  .calc-btn {
+    width: 100%;
+    background: var(--accent);
+    color: #080a0f;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    border: none;
+    padding: 18px;
+    border-radius: 3px;
+    cursor: pointer;
+    margin-top: 24px;
+    transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
+    box-shadow: 0 0 24px var(--accent-glow);
+    animation: fadeUp 0.8s ease 0.5s both;
+  }
+
+  .calc-btn:hover { opacity: 0.92; transform: translateY(-1px); box-shadow: 0 4px 32px var(--accent-glow); }
+  .calc-btn:active { transform: translateY(0); }
+
+  /* ─── MONTE CARLO ─── */
+  .mc-section {
+    margin-top: 28px;
+    animation: fadeUp 0.8s ease 0.55s both;
+  }
+
+  .mc-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .mc-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--blue);
+    border: 1px solid rgba(95,168,255,0.35);
+    padding: 5px 14px;
+    border-radius: 2px;
+    background: rgba(95,168,255,0.08);
+    margin-bottom: 10px;
+  }
+
+  .mc-badge .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--blue);
+    animation: blink 1.5s ease infinite;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.2; }
+  }
+
+  .mc-run-btn {
+    background: transparent;
+    border: 1px solid var(--blue);
+    color: var(--blue);
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 12px 24px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .mc-run-btn:hover {
+    background: rgba(95,168,255,0.1);
+    box-shadow: 0 0 16px rgba(95,168,255,0.2);
+  }
+
+  .mc-run-btn.running { opacity: 0.5; cursor: not-allowed; }
+
+  .mc-params-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 28px;
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .mc-params-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(95,168,255,0.3), transparent);
+  }
+
+  .mc-params-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+
+  @media (max-width: 600px) { .mc-params-grid { grid-template-columns: 1fr; } }
+
+  .mc-progress {
+    height: 2px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 20px;
+    display: none;
+  }
+
+  .mc-progress.visible { display: block; }
+
+  .mc-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--blue), var(--accent));
+    border-radius: 2px;
+    width: 0%;
+    transition: width 0.1s linear;
+    box-shadow: 0 0 8px rgba(95,168,255,0.5);
+  }
+
+  .mc-results-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+
+  @media (max-width: 720px) { .mc-results-grid { grid-template-columns: 1fr; } }
+
+  .mc-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 28px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .mc-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(95,168,255,0.3), transparent);
+  }
+
+  .chart-wrap {
+    position: relative;
+    height: 210px;
+    margin-top: 8px;
+  }
+
+  .mc-stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-top: 16px;
+  }
+
+  .mc-stat {
+    background: var(--surface);
+    padding: 14px 16px;
+  }
+
+  .mc-stat .s-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 5px;
+  }
+
+  .mc-stat .s-value {
+    font-family: 'DM Serif Display', serif;
+    font-size: 18px;
+    color: var(--highlight);
+  }
+
+  .mc-stat.blue-stat .s-value { color: var(--blue); }
+  .mc-stat.green-stat .s-value { color: var(--accent); }
+
+  /* PERCENTILE TABLE */
+  .pct-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    margin-top: 8px;
+  }
+
+  .pct-table th {
+    text-align: left;
+    color: var(--muted);
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .pct-table td {
+    padding: 9px 10px;
+    border-bottom: 1px solid rgba(30,37,53,0.5);
+    vertical-align: middle;
+  }
+
+  .pct-table tr:last-child td { border-bottom: none; }
+
+  .pct-bar-bg {
+    background: var(--border);
+    border-radius: 2px;
+    height: 3px;
+    overflow: hidden;
+    margin-top: 4px;
+    width: 60px;
+  }
+
+  .pct-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.6s cubic-bezier(.16,1,.3,1);
+  }
+
+  .scenario-pills {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 14px;
+  }
+
+  .s-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 7px 14px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .s-pill .pill-dot { width: 6px; height: 6px; border-radius: 50%; }
+  .s-pill .pill-val { color: var(--highlight); font-size: 13px; }
+
+  .summary-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--blue);
+    border-radius: 3px;
+    padding: 14px 18px;
+    margin-top: 16px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 2.1;
+  }
+
+  .summary-box .f-title {
+    color: var(--blue);
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  /* METHOD */
+  .method-section {
+    margin-top: 28px;
+    animation: fadeUp 0.8s ease 0.65s both;
+  }
+
+  .steps-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  @media (max-width: 720px) { .steps-grid { grid-template-columns: 1fr 1fr; } }
+
+  .step { background: var(--card); padding: 24px 20px; }
+
+  .step-num {
+    border: 1px solid var(--accent-dim);
+    width: 40px; height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 2px;
+    margin-bottom: 12px;
+    font-size: 18px;
+    color: var(--accent);
+    font-family: 'DM Mono', monospace;
+  }
+
+  .step h3 { font-size: 13px; font-weight: 700; color: var(--highlight); margin-bottom: 8px; }
+  .step p { font-size: 12px; color: var(--muted); line-height: 1.7; }
+
+  .watermark {
+    font-family: 'DM Serif Display', serif;
+    font-size: 200px;
+    color: rgba(255,255,255,0.015);
+    position: absolute;
+    right: -20px; bottom: -40px;
+    line-height: 1;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .pulse {
+    animation: valuePulse 0.4s ease;
+  }
+  @keyframes valuePulse {
+    0% { opacity: 0.3; transform: scale(0.97); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+
+  footer {
+    text-align: center;
+    padding-top: 60px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+  }
+
+  .divider { width: 48px; height: 1px; background: var(--border); margin: 0 auto 20px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="badge">Venture Capital Method</div>
+    <h1>Startup<br><em>Valuation</em> Tool</h1>
+    <p class="subtitle">Calcola il valore della tua startup con il metodo VC Exit — con simulazione Monte Carlo per quantificare l'incertezza degli scenari di revenue.</p>
+  </header>
+
+  <!-- INPUTS -->
+  <div class="main-grid">
+    <div class="card">
+      <div class="card-title">01 — Proiezione all'Exit</div>
+
+      <div class="input-group">
+        <label>Revenue all'Exit (€) <span class="hint">Scenario base</span></label>
+        <div class="input-wrap">
+          <span class="prefix">€</span>
+          <input type="number" id="exitRevenue" class="with-prefix" value="10000000" step="100000">
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label>Multiplo di Settore <span class="hint">Revenue multiple</span></label>
+        <div class="slider-group">
+          <input type="range" id="revenueMultiple" min="1" max="30" value="8" step="0.5"
+            oninput="document.getElementById('rmVal').textContent=this.value+'x'; calculate()">
+          <span class="range-val" id="rmVal">8x</span>
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label>Settore</label>
+        <select id="sector" onchange="setSectorMultiple()">
+          <option value="8">SaaS / Software</option>
+          <option value="5">Fintech</option>
+          <option value="6">Healthtech</option>
+          <option value="4">E-commerce</option>
+          <option value="10">Deep Tech / AI</option>
+          <option value="3">Marketplace</option>
+          <option value="12">Biotech</option>
+          <option value="0">Personalizzato</option>
+        </select>
+      </div>
+
+      <div class="input-group">
+        <label>Anni all'Exit</label>
+        <div class="slider-group">
+          <input type="range" id="yearsToExit" min="1" max="10" value="5" step="1"
+            oninput="document.getElementById('yearsVal').textContent=this.value+' yr'; calculate()">
+          <span class="range-val" id="yearsVal">5 yr</span>
+        </div>
+      </div>
+
+      <div class="formula-box">
+        <div class="f-title">Formula</div>
+        Exit Value = Revenue × Multiplo<br>
+        = €<span id="fRevenue">10.000.000</span> × <span id="fMultiple">8</span>x<br>
+        = <span id="fExitVal" style="color:var(--accent)">€80.000.000</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">02 — Parametri Investimento</div>
+
+      <div class="input-group">
+        <label>Capitale Investito (€)</label>
+        <div class="input-wrap">
+          <span class="prefix">€</span>
+          <input type="number" id="investment" class="with-prefix" value="1000000" step="50000">
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label>ROI atteso <span class="hint">Multiplo sull'investimento</span></label>
+        <div class="slider-group">
+          <input type="range" id="roi" min="2" max="50" value="20" step="1"
+            oninput="document.getElementById('roiVal').textContent=this.value+'x'; calculate()">
+          <span class="range-val" id="roiVal">20x</span>
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label>Stage della Startup</label>
+        <select id="stage" onchange="setStageROI()">
+          <option value="30">Pre-Seed (30x+)</option>
+          <option value="20" selected>Seed (20x)</option>
+          <option value="10">Serie A (10x)</option>
+          <option value="7">Serie B (7x)</option>
+          <option value="5">Serie C+ (5x)</option>
+        </select>
+      </div>
+
+      <div class="input-group">
+        <label>Diluzione futura <span class="hint">% equity perso</span></label>
+        <div class="slider-group">
+          <input type="range" id="dilution" min="0" max="60" value="25" step="5"
+            oninput="document.getElementById('dilVal').textContent=this.value+'%'; calculate()">
+          <span class="range-val" id="dilVal">25%</span>
+        </div>
+      </div>
+
+      <div class="formula-box">
+        <div class="f-title">Formula</div>
+        Post-Money = Exit Value ÷ ROI<br>
+        Pre-Money = Post-Money − Investimento<br>
+        Ownership = Investimento ÷ Post-Money
+      </div>
+    </div>
+  </div>
+
+  <!-- BASE RESULTS -->
+  <div class="results-card">
+    <div class="watermark">VC</div>
+    <div class="card-title">03 — Valutazione Base (Scenario Atteso)</div>
+    <div class="results-grid">
+      <div class="result-cell accent-cell">
+        <div class="cell-label">Valore all'Exit</div>
+        <div class="cell-value" id="r-exit">€80M</div>
+        <div class="cell-sub">Terminal Value</div>
+      </div>
+      <div class="result-cell">
+        <div class="cell-label">Post-Money</div>
+        <div class="cell-value" id="r-postmoney">€4M</div>
+        <div class="cell-sub">Exit ÷ ROI</div>
+      </div>
+      <div class="result-cell accent-cell">
+        <div class="cell-label">Pre-Money</div>
+        <div class="cell-value" id="r-premoney">€3M</div>
+        <div class="cell-sub">Post-Money − Inv.</div>
+      </div>
+      <div class="result-cell">
+        <div class="cell-label">Ownership %</div>
+        <div class="cell-value" id="r-ownership">25%</div>
+        <div class="cell-sub">Round corrente</div>
+      </div>
+      <div class="result-cell gold-cell">
+        <div class="cell-label">IRR atteso</div>
+        <div class="cell-value" id="r-irr">82%</div>
+        <div class="cell-sub">Internal Rate of Return</div>
+      </div>
+      <div class="result-cell">
+        <div class="cell-label">Ownership (diluita)</div>
+        <div class="cell-value" id="r-diluted">18.8%</div>
+        <div class="cell-sub">Post futuri round</div>
+      </div>
+    </div>
+  </div>
+
+  <button class="calc-btn" onclick="calculate()">↻ Ricalcola Valutazione</button>
+
+  <!-- ─── MONTE CARLO ─── -->
+  <div class="mc-section">
+    <div class="mc-header">
+      <div>
+        <div class="mc-badge"><span class="dot"></span>04 — Monte Carlo Simulation</div>
+        <p style="font-size:12px;color:var(--muted);max-width:520px;line-height:1.7;margin-top:4px;">
+          Simula migliaia di scenari con revenue stocastica per ottenere una distribuzione probabilistica della pre-money valuation — e capire il vero range di rischio/opportunità.
+        </p>
+      </div>
+      <button class="mc-run-btn" id="mcRunBtn" onclick="runMonteCarlo()">▶ &nbsp;Esegui Simulazione</button>
+    </div>
+
+    <!-- MC PARAMS -->
+    <div class="mc-params-card">
+      <div class="card-title">Parametri della Simulazione</div>
+      <div class="mc-params-grid">
+        <div class="input-group" style="margin-bottom:0">
+          <label>Iterazioni</label>
+          <select id="mcIterations">
+            <option value="1000">1.000 scenari</option>
+            <option value="5000" selected>5.000 scenari</option>
+            <option value="10000">10.000 scenari</option>
+          </select>
+        </div>
+        <div class="input-group" style="margin-bottom:0">
+          <label>Distribuzione Revenue</label>
+          <select id="mcDistribution">
+            <option value="lognormal" selected>Log-Normale (asimmetrica)</option>
+            <option value="normal">Normale (simmetrica)</option>
+            <option value="triangular">Triangolare</option>
+          </select>
+        </div>
+        <div class="input-group" style="margin-bottom:0">
+          <label>Volatilità Revenue <span class="hint">σ % del valore base</span></label>
+          <div class="slider-group">
+            <input type="range" id="mcVolatility" min="10" max="100" value="40" step="5"
+              oninput="document.getElementById('mcVolVal').textContent=this.value+'%'">
+            <span class="range-val" id="mcVolVal">40%</span>
+          </div>
+        </div>
+        <div class="input-group" style="margin-bottom:0">
+          <label>Floor Revenue (downside) <span class="hint">% del valore base</span></label>
+          <div class="slider-group">
+            <input type="range" id="mcDownside" min="5" max="50" value="20" step="5"
+              oninput="document.getElementById('mcDownVal').textContent=this.value+'%'">
+            <span class="range-val" id="mcDownVal">20%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROGRESS -->
+    <div class="mc-progress" id="mcProgress">
+      <div class="mc-progress-fill" id="mcProgressFill"></div>
+    </div>
+
+    <!-- MC RESULTS -->
+    <div class="mc-results-grid">
+      <!-- HISTOGRAM -->
+      <div class="mc-card">
+        <div class="card-title">Distribuzione Pre-Money Valuation</div>
+        <div class="chart-wrap">
+          <canvas id="mcChart"></canvas>
+        </div>
+        <div class="mc-stats-row">
+          <div class="mc-stat blue-stat">
+            <div class="s-label">Mediana (P50)</div>
+            <div class="s-value" id="mc-median">—</div>
+          </div>
+          <div class="mc-stat green-stat">
+            <div class="s-label">Media</div>
+            <div class="s-value" id="mc-mean">—</div>
+          </div>
+          <div class="mc-stat">
+            <div class="s-label">Std Deviation</div>
+            <div class="s-value" id="mc-std">—</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PERCENTILES + SCENARIOS -->
+      <div class="mc-card">
+        <div class="card-title">Analisi Percentili</div>
+        <table class="pct-table">
+          <thead>
+            <tr>
+              <th>Scenario</th>
+              <th>Pre-Money</th>
+              <th>Revenue Exit</th>
+            </tr>
+          </thead>
+          <tbody id="pctBody">
+            <tr><td colspan="3" style="color:var(--muted);font-size:11px;padding:20px 10px;text-align:center;">
+              Esegui la simulazione per visualizzare i risultati
+            </td></tr>
+          </tbody>
+        </table>
+
+        <div style="margin-top:20px;">
+          <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;">Scenario Breakdown</div>
+          <div class="scenario-pills">
+            <div class="s-pill">
+              <span class="pill-dot" style="background:var(--danger)"></span>
+              Bear &nbsp;<span class="pill-val" id="sc-bear">—</span>
+            </div>
+            <div class="s-pill">
+              <span class="pill-dot" style="background:var(--gold)"></span>
+              Base &nbsp;<span class="pill-val" id="sc-base">—</span>
+            </div>
+            <div class="s-pill">
+              <span class="pill-dot" style="background:var(--accent)"></span>
+              Bull &nbsp;<span class="pill-val" id="sc-bull">—</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="summary-box" id="mcSummary">
+          <div class="f-title">Analisi Probabilistica</div>
+          <span style="color:var(--muted)">Premi "Esegui Simulazione" per ottenere<br>la distribuzione probabilistica completa.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HOW IT WORKS -->
+  <div class="method-section">
+    <div class="card-title" style="margin-bottom:16px;">
+      Come funziona
+      <span style="flex:1;height:1px;background:var(--border);display:block;"></span>
+    </div>
+    <div class="steps-grid">
+      <div class="step">
+        <div class="step-num">01</div>
+        <h3>Proietta il Revenue</h3>
+        <p>Stima il fatturato all'exit (IPO o M&A), solitamente entro 5–7 anni. Questo è il valore base per tutte le simulazioni.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">02</div>
+        <h3>Applica il Multiplo</h3>
+        <p>Moltiplica il revenue per il multiplo di settore per calcolare il Terminal Value. Varia per ogni iterazione Monte Carlo.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">03</div>
+        <h3>Valutazione Base</h3>
+        <p>Divide il Terminal Value per il ROI target del VC. Sottrae l'investimento per ottenere il pre-money.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">04</div>
+        <h3>Monte Carlo</h3>
+        <p>Simula migliaia di scenari con revenue casuale per ottenere l'intera distribuzione probabilistica della valutazione.</p>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <div class="divider"></div>
+    VC Exit Method Calculator — Solo a scopo informativo<br>
+    I risultati sono stime basate su proiezioni e non costituiscono consulenza finanziaria
+  </footer>
+</div>
+
+<script>
+// ─── UTILS ───
+function fmt(n) {
+  if (!isFinite(n) || isNaN(n)) return '—';
+  if (n < 0) return '-' + fmt(-n);
+  if (n >= 1e9) return '€' + (n/1e9).toFixed(2) + 'B';
+  if (n >= 1e6) return '€' + (n/1e6).toFixed(2) + 'M';
+  if (n >= 1e3) return '€' + (n/1e3).toFixed(0) + 'K';
+  return '€' + n.toFixed(0);
+}
+
+function fmtPlain(n) { return Math.round(n).toLocaleString('it-IT'); }
+
+function animateValue(el) {
+  el.classList.remove('pulse');
+  void el.offsetWidth;
+  el.classList.add('pulse');
+}
+
+function pct(arr, p) {
+  const i = Math.min(Math.floor(arr.length * p / 100), arr.length - 1);
+  return arr[i];
+}
+
+function randNormal() {
+  let u = 0, v = 0;
+  while (!u) u = Math.random();
+  while (!v) v = Math.random();
+  return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+}
+
+// ─── BASE CALC ───
+function getParams() {
+  return {
+    exitRevenue: parseFloat(document.getElementById('exitRevenue').value) || 0,
+    revenueMultiple: parseFloat(document.getElementById('revenueMultiple').value) || 1,
+    investment: parseFloat(document.getElementById('investment').value) || 0,
+    roi: parseFloat(document.getElementById('roi').value) || 1,
+    years: parseFloat(document.getElementById('yearsToExit').value) || 1,
+    dilution: parseFloat(document.getElementById('dilution').value) / 100,
+  };
+}
+
+function calcFrom(revenue, p) {
+  const exitValue = revenue * p.revenueMultiple;
+  const postMoney = exitValue / p.roi;
+  const preMoney = postMoney - p.investment;
+  return { exitValue, postMoney, preMoney };
+}
+
+function calculate() {
+  const p = getParams();
+  const { exitValue, postMoney, preMoney } = calcFrom(p.exitRevenue, p);
+  const ownership = (p.investment / postMoney) * 100;
+  const irr = (Math.pow(p.roi, 1 / p.years) - 1) * 100;
+  const diluted = ownership * (1 - p.dilution);
+
+  document.getElementById('fRevenue').textContent = fmtPlain(p.exitRevenue);
+  document.getElementById('fMultiple').textContent = p.revenueMultiple;
+  document.getElementById('fExitVal').textContent = fmt(exitValue);
+
+  [
+    ['r-exit', fmt(exitValue)],
+    ['r-postmoney', fmt(postMoney)],
+    ['r-premoney', preMoney >= 0 ? fmt(preMoney) : '—'],
+    ['r-ownership', ownership.toFixed(1) + '%'],
+    ['r-irr', irr.toFixed(1) + '%'],
+    ['r-diluted', diluted.toFixed(1) + '%'],
+  ].forEach(([id, val]) => {
+    const el = document.getElementById(id);
+    el.textContent = val;
+    animateValue(el);
+  });
+}
+
+function setSectorMultiple() {
+  const val = parseFloat(document.getElementById('sector').value);
+  if (!val) return;
+  document.getElementById('revenueMultiple').value = val;
+  document.getElementById('rmVal').textContent = val + 'x';
+  calculate();
+}
+
+function setStageROI() {
+  const val = parseFloat(document.getElementById('stage').value);
+  document.getElementById('roi').value = val;
+  document.getElementById('roiVal').textContent = val + 'x';
+  calculate();
+}
+
+// ─── CHART ───
+let mcChart = null;
+
+function buildChart(bins, labels, p10, p90) {
+  const ctx = document.getElementById('mcChart').getContext('2d');
+  if (mcChart) mcChart.destroy();
+
+  const midVals = bins.map((_, i) => {
+    const raw = labels[i].replace('M','').replace('K','').replace('€','').replace('-','');
+    return parseFloat(raw) || 0;
+  });
+  const maxMid = Math.max(...midVals);
+  const p10Idx = Math.floor(bins.length * 0.1);
+  const p90Idx = Math.floor(bins.length * 0.9);
+
+  const bgColors = bins.map((_, i) => {
+    if (i < p10Idx) return 'rgba(255,95,95,0.75)';
+    if (i > p90Idx) return 'rgba(200,241,53,0.75)';
+    return 'rgba(95,168,255,0.6)';
+  });
+
+  mcChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        data: bins,
+        backgroundColor: bgColors,
+        borderRadius: 2,
+        borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#111520',
+          borderColor: '#1e2535',
+          borderWidth: 1,
+          titleFont: { family: 'DM Mono', size: 10 },
+          bodyFont: { family: 'DM Mono', size: 10 },
+          titleColor: '#5fa8ff',
+          bodyColor: '#5a6280',
+          callbacks: {
+            title: items => 'Pre-Money: ' + items[0].label,
+            label: item => 'Scenari: ' + item.raw,
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: 'rgba(30,37,53,0.6)', drawBorder: false },
+          ticks: { color: '#5a6280', font: { family: 'DM Mono', size: 8 }, maxTicksLimit: 8 }
+        },
+        y: {
+          grid: { color: 'rgba(30,37,53,0.6)', drawBorder: false },
+          ticks: { color: '#5a6280', font: { family: 'DM Mono', size: 8 } }
+        }
+      },
+      animation: { duration: 700, easing: 'easeOutQuart' }
+    }
+  });
+}
+
+// ─── MONTE CARLO ───
+let mcRunning = false;
+
+function runMonteCarlo() {
+  if (mcRunning) return;
+  mcRunning = true;
+
+  const btn = document.getElementById('mcRunBtn');
+  btn.classList.add('running');
+  btn.textContent = '⟳  Simulazione in corso…';
+
+  const progress = document.getElementById('mcProgress');
+  const fill = document.getElementById('mcProgressFill');
+  progress.classList.add('visible');
+  fill.style.width = '0%';
+
+  const p = getParams();
+  const N = parseInt(document.getElementById('mcIterations').value);
+  const vol = parseFloat(document.getElementById('mcVolatility').value) / 100;
+  const downsidePct = parseFloat(document.getElementById('mcDownside').value) / 100;
+  const dist = document.getElementById('mcDistribution').value;
+
+  const mu = p.exitRevenue;
+  const sigma = mu * vol;
+  const minRev = mu * downsidePct;
+
+  // Log-normal params
+  const sigmaLn = Math.sqrt(Math.log(1 + (sigma/mu) ** 2));
+  const muLn = Math.log(mu) - sigmaLn ** 2 / 2;
+
+  function sampleRev() {
+    let r;
+    if (dist === 'lognormal') {
+      r = Math.exp(muLn + sigmaLn * randNormal());
+    } else if (dist === 'normal') {
+      r = mu + sigma * randNormal();
+    } else {
+      // Triangular
+      const lo = mu * downsidePct, hi = mu * (2 - downsidePct), mode = mu;
+      const F = (mode - lo) / (hi - lo);
+      const u = Math.random();
+      r = u < F
+        ? lo + Math.sqrt(u * (hi - lo) * (mode - lo))
+        : hi - Math.sqrt((1 - u) * (hi - lo) * (hi - mode));
+    }
+    return Math.max(r, minRev);
+  }
+
+  const pmResults = [];
+  const revResults = [];
+  const CHUNK = 500;
+  let done = 0;
+
+  function chunk() {
+    const end = Math.min(done + CHUNK, N);
+    for (let i = done; i < end; i++) {
+      const rev = sampleRev();
+      const { preMoney } = calcFrom(rev, p);
+      pmResults.push(preMoney);
+      revResults.push(rev);
+    }
+    done = end;
+    fill.style.width = (done / N * 100) + '%';
+    if (done < N) { requestAnimationFrame(chunk); }
+    else { finalize(pmResults, revResults, p, N); }
+  }
+
+  setTimeout(chunk, 40);
+}
+
+function finalize(pmArr, revArr, p, N) {
+  const sortedPM  = [...pmArr].sort((a,b) => a-b);
+  const sortedRev = [...revArr].sort((a,b) => a-b);
+
+  const mean = pmArr.reduce((s,v) => s+v, 0) / N;
+  const median = pct(sortedPM, 50);
+  const std  = Math.sqrt(pmArr.reduce((s,v) => s+(v-mean)**2, 0) / N);
+
+  // Percentiles
+  const pts = [10, 25, 50, 75, 90];
+  const pmPcts  = pts.map(p => pct(sortedPM,  p));
+  const revPcts = pts.map(p => pct(sortedRev, p));
+
+  // Stats
+  document.getElementById('mc-median').textContent = fmt(median);
+  document.getElementById('mc-mean').textContent   = fmt(mean);
+  document.getElementById('mc-std').textContent    = fmt(std);
+
+  // Scenarios
+  const bear25 = pct(sortedPM, 25);
+  const bull75 = pct(sortedPM, 75);
+  const bearN = pmArr.filter(v => v <= bear25).length;
+  const bullN = pmArr.filter(v => v >= bull75).length;
+  const baseN = N - bearN - bullN;
+  document.getElementById('sc-bear').textContent = (bearN/N*100).toFixed(0) + '%';
+  document.getElementById('sc-base').textContent = (baseN/N*100).toFixed(0) + '%';
+  document.getElementById('sc-bull').textContent = (bullN/N*100).toFixed(0) + '%';
+
+  // Percentile table
+  const colors = ['var(--danger)', '#f09060', 'var(--blue)', 'var(--gold)', 'var(--accent)'];
+  const labels = ['P10 — Pessimistico', 'P25 — Cauto', 'P50 — Mediano', 'P75 — Ottimistico', 'P90 — Best Case'];
+  const maxPM = pmPcts[4] || 1;
+
+  document.getElementById('pctBody').innerHTML = pts.map((p, i) => `
+    <tr>
+      <td style="color:${colors[i]};font-size:10px;">${labels[i]}</td>
+      <td style="color:${colors[i]};font-weight:600;">${fmt(pmPcts[i])}</td>
+      <td style="color:var(--muted);font-size:10px;">
+        ${fmt(revPcts[i])}
+        <div class="pct-bar-bg">
+          <div class="pct-bar-fill" style="width:0%;background:${colors[i]}" data-w="${Math.max(0,(pmPcts[i]/maxPM)*100).toFixed(1)}%"></div>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+
+  // Animate bars after DOM update
+  setTimeout(() => {
+    document.querySelectorAll('.pct-bar-fill').forEach(el => {
+      el.style.width = el.dataset.w;
+    });
+  }, 80);
+
+  // Summary
+  const probPos = (pmArr.filter(v => v > 0).length / N * 100).toFixed(1);
+  document.getElementById('mcSummary').innerHTML = `
+    <div class="f-title">Analisi Probabilistica</div>
+    Prob. Pre-Money > 0: <span style="color:var(--accent)">${probPos}%</span><br>
+    Range P25–P75: <span>${fmt(pmPcts[1])} → ${fmt(pmPcts[3])}</span><br>
+    Mediana: <span style="color:var(--blue)">${fmt(median)}</span><br>
+    Upside P90: <span style="color:var(--accent)">${fmt(pmPcts[4])}</span><br>
+    Downside P10: <span style="color:var(--danger)">${fmt(pmPcts[0])}</span>
+  `;
+
+  // Histogram
+  const validPM = sortedPM.filter(v => isFinite(v));
+  const minV = validPM[0], maxV = validPM[validPM.length-1];
+  const numBins = 32;
+  const binW = (maxV - minV) / numBins || 1;
+  const bins = new Array(numBins).fill(0);
+  validPM.forEach(v => {
+    const idx = Math.min(Math.floor((v - minV) / binW), numBins-1);
+    if (idx >= 0) bins[idx]++;
+  });
+
+  const binLabels = bins.map((_, i) => {
+    const v = minV + i * binW;
+    if (Math.abs(v) >= 1e6) return (v/1e6).toFixed(1) + 'M';
+    if (Math.abs(v) >= 1e3) return (v/1e3).toFixed(0) + 'K';
+    return v.toFixed(0);
+  });
+
+  buildChart(bins, binLabels, pmPcts[0], pmPcts[4]);
+
+  // Reset button
+  const btn = document.getElementById('mcRunBtn');
+  btn.classList.remove('running');
+  btn.textContent = '↻  Riesegui';
+  document.getElementById('mcProgress').classList.remove('visible');
+  mcRunning = false;
+}
+
+// ─── INIT ───
+document.querySelectorAll('input[type="number"]').forEach(el => el.addEventListener('input', calculate));
+calculate();
+</script>
+</body>
+</html>
